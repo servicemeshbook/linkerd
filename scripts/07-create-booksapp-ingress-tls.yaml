@@ -17,3 +17,7 @@ spec:
           serviceName: webapp
           servicePort: 7000
         path: /
+  tls:
+  - hosts:
+    - booksapp.linkerd.local
+    secretName: booksapp-keys
