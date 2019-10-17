@@ -5,7 +5,7 @@ metadata:
   annotations:
     ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:80;
+      proxy_set_header l5d-dst-override $service_name.$namespace.svc.cluster.local:9090;
       proxy_hide_header l5d-remote-ip;
       proxy_hide_header l5d-server-id;
 spec:

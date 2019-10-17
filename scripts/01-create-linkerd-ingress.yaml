@@ -11,7 +11,7 @@ metadata:
       proxy_hide_header l5d-server-id;
 spec:
   rules:
-  - host: dashboard.linkerd.io
+  - host: dashboard.linkerd.local
     http:
       paths:
       - backend:

@@ -4,3 +4,10 @@
 **/.Trashes
 **/Icon?
 **/Thumbs.db
+**/*.swp
+**/*.bak
+**/*.tmp
+**/.project
+**/.idea/
+**/*.tmproj
+**/.vscode/
