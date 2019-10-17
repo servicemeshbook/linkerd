@@ -10,7 +10,7 @@ metadata:
       proxy_hide_header l5d-server-id;
 spec:
   rules:
-  - host: prometheus.linkerd.io
+  - host: prometheus.linkerd.local
     http:
       paths:
       - backend:
