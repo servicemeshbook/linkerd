@@ -10,7 +10,7 @@ metadata:
       proxy_hide_header l5d-server-id;
 spec:
   rules:
-  - host: emojivoto.linkerd.io
+  - host: emojivoto.linkerd.local
     http:
       paths:
       - backend:
