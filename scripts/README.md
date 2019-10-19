@@ -113,7 +113,11 @@ linkerd install control-plane | kubectl apply -f -
 ### Accessing Linkerd Dashboard
 
 ```
-linkerd dashboard
+cd ~/ # Switch to home directory
+git clone https://github.com/servicemeshbook/linkerd.git
+cd linkerd
+git checkout $LINKERD2_VERSION
+cd scripts
 ```
 
 ### Ingress Gateway
@@ -269,6 +273,184 @@ curl -s -H "Host: booksapp.linkerd.local" http://$INGRESS_HOST | grep -i /title
 ### End of Linkerd install and demo apps
 
 ## Reliability
+
+### Change to scripts directory
+```
+cd ~/linkerd/scripts
+```
+
+### Scale voting and web deployments from 1 to 2 replicas
+
+```
+kubectl -n emojivoto scale deploy voting --replicas=2
+
+kubectl -n emojivoto scale deploy web --replicas=2
+```
+
+### Check the stats on deployment using linkerd CLI
+```
+linkerd -n emojivoto stat deployments
+```
+
+### Check aggregated information at the pod level for each web and voting pods
+```
+linkerd -n emojivoto stat pods
+```
+
+### Now go to a browser locally or in the VM and run http://dashboard.linkerd.local
+
+### linkerd top example - shows metrics from traffic to webapp microservice
+```
+linkerd top deployment/traffic --namespace linkerd-lab \
+--to deployment/webapp --to-namespace linkerd-lab --path /books --hide-sources
+```
+
+### setting up a service profile
+
+### validate if a service profile is deployed
+```
+kubectl -n linkerd-lab get crd | grep -i linkerd
+```
+
+### look at booksapp services
+```
+kubectl -n linkerd-lab get svc
+```
+
+### Look at the routes that Linkerd discovers
+```
+linkerd -n linkerd-lab routes services
+```
+
+### create a service profile using a linkerd profile command
+```
+linkerd profile --template webapp -n linkerd-lab > webapp.yaml
+cat webapp.yaml
+```
+
+### Edit the generated template to match the one given below
+```
+cat 05-create-service-profile-web.yaml
+```
+
+### Deploy the above Service Profile for webapp service
+```
+kubectl -n linkerd-lab apply -f 05-create-service-profile-web.yaml
+```
+
+### let's see if the linkerd route command picks up the new additional routes
+```
+linkerd -n linkerd-lab routes services/webapp
+```
+
+### Following linkerd profile commands to see the generated profile
+```
+linkerd -n linkerd-lab profile --open-api webapp.swagger webapp
+
+linkerd -n linkerd-lab profile --open-api authors.swagger authors
+
+linkerd -n linkerd-lab profile --open-api books.swagger books
+```
+
+### let's create Linkerd Kubernetes primitive Service Profiles
+```
+linkerd -n linkerd-lab profile --open-api webapp.swagger webapp | kubectl -n linkerd-lab apply -f -
+
+linkerd -n linkerd-lab profile --open-api books.swagger books| kubectl -n linkerd-lab apply -f -
+
+linkerd -n linkerd-lab profile --open-api authors.swagger authors | kubectl -n linkerd-lab apply -f -
+```
+
+### Check the service profile definition created in linkerd-lab namespace
+```
+kubectl -n linkerd-lab get serviceprofile
+```
+
+### Let's check per route metrics accumulated from webapp service
+```
+linkerd -n linkerd-lab routes deploy/webapp
+```
+
+### Check per route metrics accumulated from authors service
+```
+linkerd -n linkerd-lab routes deploy/authors
+```
+
+### example shows traffic aggregation from webapp service to authors service
+```
+linkerd -n linkerd-lab routes deploy/webapp --to svc/authors
+```
+
+### traffic from webapp to books
+```
+linkerd -n linkerd-lab routes deploy/webapp --to svc/books
+```
+
+### Retries test
+
+### Linkerd routes from books to authors and see the metrics
+```
+linkerd -n linkerd-lab routes deploy/books --to svc/authors
+```
+
+### edit the authors service profile 
+### Add isRetryable: true for the route HEAD /authors/{id}.json
+```
+kubectl -n linkerd-lab patch sp authors.linkerd-lab.svc.cluster.local --type json --patch='[{"op": "add","path": "/spec/routes/4/isRetryable","value": true}]'
+```
+
+### Linkerd will begin the retry requests to this route automatically
+```
+linkerd -n linkerd-lab routes deploy/books --to svc/authors
+```
+
+### the failing request is showing a 100% success rate but notice the latency has increased due to the retry
+
+### Retry budgets
+
+### an example of a retry budget that can be specified at the service profile level
+```
+cat << EOT | tee
+spec:
+  retryBudget:
+    retryRatio: 0.2
+    minRetriesPerSecond: 10
+    ttl: 10s
+EOT
+```
+
+### Above shows the maximum time to live is 10 seconds and then the retry ratio is 20% of the total requests
+
+### Timeouts
+
+### Patch the service profile for authors.linkerd-lab.svc.cluster.local by adding line timeout: 25ms
+
+```
+kubectl -n linkerd-lab patch sp authors.linkerd-lab.svc.cluster.local \
+--type json --patch='[{"op": "add","path": "/spec/routes/4/timeout","value": 25ms}]'
+```
+
+### Check patched service profile
+```
+kubectl -n linkerd-lab get sp authors.linkerd-lab.svc.cluster.local -o yaml
+```
+
+### Run linkerd route command to see the effect of timeout
+```
+linkerd -n linkerd-lab routes deploy/books --to svc/authors
+```
+
+### After a timeout is implemented, you will notice that the success rate has reduced from 100%
+
+### Error code hunting
+
+### Linkerd shows a tap command line with the argument which is very nice to watch without using the UI
+```
+linkerd tap deployment/web --namespace emojivoto \
+--to deployment/voting --to-namespace emojivoto \
+--path /emojivoto.v1.VotingService/VoteDoughnut
+```
+
 ### End of Linkerd Reliability commands
 
 ## Security
