@@ -1,6 +1,13 @@
 # Linkerd - Commands 
 
-## Install Linkerd
+Contents
+
+- [Installing Linkerd](#Installing-Linkerd)
+- [Reliability](#Reliability)
+- [Security](#Security)
+- [Visibility](#Visibility)
+
+## Installing Linkerd
 
 Copy and paste command as you practice.
 
@@ -203,7 +210,7 @@ kubectl -n emojivoto get pods
 kubectl -n emojivoto get services
 ```
 
-## Installing booksapp application
+### Installing booksapp application
 
 ### Admission webhook is enabled automatically when we installed a linkerd control plane
 ```
@@ -260,3 +267,12 @@ curl -s -H "Host: booksapp.linkerd.local" http://$INGRESS_HOST | grep -i /title
 ```
 
 ### End of Linkerd install and demo apps
+
+## Reliability
+### End of Linkerd Reliability commands
+
+## Security
+### End of Linkerd Security commands
+
+## Visibility
+### End of Linkerd Visibility commands

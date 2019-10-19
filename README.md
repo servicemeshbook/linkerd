@@ -1,15 +1,25 @@
 # Learn Linkerd by Examples
 
-## Chapters
-
-This section has scripts for the following chapters
-
-* Understanding Linkerd Service Mesh
-* Install Linkerd
-* Reliability
-* Security
-* Visibility
+- [Install Linkerd](scripts#installing-linkerd)
+- [Reliability](scripts#Reliability)
+- [Security](scripts#Security)
+- [Visibility](scripts#Visibility)
 
 ## Version
 
-This branch has scripts that works with stable-2.4.0 release of Linkerd
+This branch has scripts that works with stable-2.6.0 release of Linkerd.
+
+## Ascinema recordings
+
+### Linkerd - Install 
+[![asciicast](https://asciinema.org/a/274840.svg)](https://asciinema.org/a/274840)
+
+### Linkerd - Reliability
+[![asciicast](https://asciinema.org/a/275154.svg)](https://asciinema.org/a/275154)
+
+### Linkerd - Security
+[![asciicast](https://asciinema.org/a/275423.svg)](https://asciinema.org/a/275423)
+
+### Linkerd - Visibility
+[![asciicast](https://asciinema.org/a/275423.svg)](https://asciinema.org/a/275423)
+
