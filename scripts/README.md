@@ -454,7 +454,293 @@ linkerd tap deployment/web --namespace emojivoto \
 ### End of Linkerd Reliability commands
 
 ## Security
+
+### Change directory to scripts
+```
+cd ~/linkerd/scripts
+``` 
+
+### Validating mTLS on Linkerd
+
+### Check the TLS status of traffic
+
+### You will see live traffic from all existing deployments
+```
+linkerd tap deploy -n linkerd-lab
+```
+
+### Check the linkerd identity log
+```
+kubectl -n linkerd -c identity -l linkerd.io/control-plane-component=identity logs
+```
+
+### Using trusted certificates for control plane
+
+### Using smallstep PKI to generate keys and certificates
+
+### Add the helm repository to get the chart
+```
+helm repo add smallstep https://smallstep.github.io/helm-charts/
+```
+
+### check the helm repository list 
+```
+helm repo list
+```
+
+### Update helm repository with smallstep chart
+```
+helm repo update
+```
+
+### Install smallstep certificate through the newly added helm chart
+```
+helm install --name step --namespace step smallstep/step-certificates \
+--set fullnameOverride="step" --set ca.db.enabled=false
+```
+
+### Check the status of step pods
+```
+kubectl -n step get pods
+```
+
+### Creating Step root and intermediate
+```
+kubectl -n step exec -t step-0 -- step certificate create --profile root-ca "My Root CA" root-ca.crt root-ca.key --no-password --insecure --force
+
+kubectl -n step exec -t step-0 -- step certificate create identity.linkerd.cluster.local identity.crt identity.key --profile intermediate-ca --ca ./root-ca.crt --ca-key ./root-ca.key --no-password --insecure --force
+
+```
+
+### Check the expiry date of the intermediate certificate
+```
+kubectl -n step exec -t step-0 -- step certificate inspect identity.crt --short
+```
+
+### Extract certificates from the pod as we did not use a persistent volume while creating the step helm chart
+
+```
+kubectl -n step cp step-0:root-ca.crt /tmp/root-ca.crt
+
+kubectl -n step cp step-0:identity.crt /tmp/identity.crt
+
+kubectl -n step cp step-0:identity.key /tmp/identity.key
+```
+
+### Reinstall control plane to use our certificates
+
+### Delete our current installation
+```
+linkerd install --ignore-cluster | kubectl delete -f -
+```
+
+### Create a new Linkerd installation using trusted certificates
+```
+linkerd install \
+--identity-trust-anchors-file /tmp/root-ca.crt \
+--identity-issuer-key-file /tmp/identity.key \
+--identity-issuer-certificate-file /tmp/identity.crt \
+--ignore-cluster | kubectl apply -f -
+```
+### Perform a linkerd check.
+```
+linkerd check
+```
+
+### Create the ingress definitions to access the dashboard
+```
+cd ~/linkerd/scripts
+kubectl -n linkerd apply -f 01-create-linkerd-ingress.yaml
+```
+
+### Check the TLS status of traffic.
+```
+linkerd tap deploy -n linkerd
+```
+
+### The certificate expiry time is 24 hours for the leaf certificates that Linkerd identity CA
+
+### Verify that by looking at the linkerd identity logs
+```
+kubectl -n linkerd -c identity -l linkerd.io/control-plane-component=identity logs
+```
+
+### Validate the leaf certificate, and the key is stored in linkerd-identity-issuer secret 
+```
+kubectl -n linkerd get secret linkerd-identity-issuer -o jsonpath='{.data.crt\.pem}' | base64 -d
+```
+
+### The output from above matches with /tmp/identity.crt
+```
+kubectl -n linkerd get secret linkerd-identity-issuer -o jsonpath='{.data.key\.pem}' | base64 -d
+```
+
+### Rotation of Identity certificates for microservices
+
+### Steps to re-generate and rotate the identity certificates
+```
+kubectl -n step exec -t step-0 -- step certificate create identity.linkerd.cluster.local identity.crt identity.key --profile intermediate-ca --ca ./root-ca.crt --ca-key ./root-ca.key --no-password --insecure --force
+
+kubectl -n step cp step-0:identity.crt /tmp/identity.crt
+
+kubectl -n step cp step-0:identity.key /tmp/identity.key
+```
+
+### Delete the secret
+```
+kubectl -n linkerd delete secret linkerd-identity-issuer
+```
+
+### Re-create secret with a new certificate
+```
+kubectl -n linkerd create secret generic linkerd-identity-issuer \
+ --from-file=crt.pem=/tmp/identity.crt \
+ --from-file=key.pem=/tmp/identity.key
+```
+
+### Restart identity control plane deployments to pick the new certificate
+```
+kubectl -n linkerd rollout restart deploy linkerd-identity
+```
+
+### Check linkerd
+```
+linkerd check
+```
+
+### Check leaf certificates issued to control plane components by Linkerd
+```
+kubectl -n linkerd -c identity -l linkerd.io/control-plane-component=identity logs
+```
+
+### Secure Ingress Gateway
+
+### TLS termination
+
+### Create a leaf certificate for the booksapp.linkerd.local
+
+```
+kubectl -n step exec -t step-0 -- \
+step certificate create booksapp.linkerd.local booksapp.crt booksapp.key \
+--profile leaf --ca identity.crt --ca-key identity.key \
+--no-password --insecure --force --kty=RSA --not-after=2160h
+
+kubectl -n step cp step-0:booksapp.crt booksapp.crt
+kubectl -n step cp step-0:booksapp.key booksapp.key
+```
+
+### Pass the certificate chain along with the leaf certificate private key to the Nginx Ingress Controller
+
+### Create a certificate chain of leaf and intermediate
+
+```
+cat booksapp.crt /tmp/identity.crt  > ca-bundle.crt
+```
+
+### Create a Kubernetes TLS secret booksapp-keys. 
+```
+kubectl -n linkerd-lab create secret tls booksapp-keys --key booksapp.key --cert ca-bundle.crt
+```
+
+### Modify Ingress definition to include TLS secret
+```
+cat 07-create-booksapp-ingress-tls.yaml
+kubectl -n linkerd-lab apply -f 07-create-booksapp-ingress-tls.yaml
+```
+
+### Find out the nginx pod name.
+
+```
+NGINX_POD=$(kubectl -n kube-system get pod -l app=nginx-controller -o jsonpath='{.items..metadata.name}') ; echo $NGINX_POD
+```
+
+### List the configurations pushed 
+```
+kubectl -n kube-system exec -it $NGINX_POD -- ls -l /etc/nginx/conf.d
+```
+
+### Check the configuration that was pushed
+```
+kubectl -n kube-system exec -it $NGINX_POD -- cat /etc/nginx/conf.d/linkerd-lab-booksapp.conf
+```
+
+### List TLS secrets
+```
+kubectl -n kube-system exec -it $NGINX_POD -- ls -l /etc/nginx/secrets
+```
+
+### Check secret that was just pushed - with certificate chain and private key
+```
+kubectl -n kube-system exec -it $NGINX_POD -- cat /etc/nginx/secrets/default
+```
+
+### Check https://booksinfo.linkerd.local from web browser
+
+### Check TLS termination through curl
+
+```
+export INGRESS_PORT=$(kubectl -n kube-system get service nginx-controller -o jsonpath='{.spec.ports[?(@.name=="https")].port}') ; echo $INGRESS_PORT
+
+export INGRESS_HOST=$(kubectl -n kube-system get service nginx-controller -o jsonpath='{.status.loadBalancer.ingress..ip}') ; echo $INGRESS_HOST
+
+rm -fr ~/.pki
+
+curl -Ls -HHost:booksapp.linkerd.local \
+--resolve booksapp.linkerd.local:$INGRESS_HOST:$INGRESS_PORT \
+--cacert ca-bundle.crt https://booksapp.linkerd.local
+```
+
 ### End of Linkerd Security commands
 
 ## Visibility
+
+### Change directory 
+```
+cd ~/linkerd/scripts
+```
+
+### Gaining Insight into Service Mesh throup top command
+
+```
+linkerd top deployment --namespace emojivoto --hide-sources
+```
+
+### Create Prometheus Ingress rule to connect to Prometheus
+
+```
+cat 06-create-prometheus-ingress.yaml
+kubectl -n linkerd apply -f 06-create-prometheus-ingress.yaml
+```
+
+### Create an entry in /etc/hosts for the prometheus.linkerd.local host.
+```
+export INGRESS_HOST=$(kubectl -n kube-system get service nginx-controller -o jsonpath='{.status.loadBalancer.ingress..ip}') ; echo $INGRESS_HOST
+
+sudo sed -i '/prometheus.linkerd.local/d' /etc/hosts
+
+echo "$INGRESS_HOST prometheus.linkerd.local" | sudo tee -a /etc/hosts
+```
+
+### Run http://prometheus.linkerd.local from your browser
+
+### Test curl 
+
+```
+curl -Ls -H "Host: prometheus.linkerd.local" http://prometheus.linkerd.local | grep title
+```
+
+### External Prometheus integration
+
+### Call federation API
+```
+curl -Ls -G --data-urlencode 'match[]={job="linkerd-proxy"}' --data-urlencode 'match[]={job="linkerd-controller"}' http://prometheus.linkerd.local/federate | tail -100
+```
+
+### Gather data directly from Linkerd proxies
+```
+export AUTHORS_PODIP=$(kubectl -n linkerd-lab get pods -l app=authors -o jsonpath='{.items[0].status.podIP}') ; echo $AUTHORS_PODIP
+
+curl -s http://$AUTHORS_PODIP:4191/metrics | tail -100
+```
+
 ### End of Linkerd Visibility commands
