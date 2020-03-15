@@ -2,10 +2,10 @@
 
 Contents
 
-- [Chapter 15 - Installing Linkerd](#Installing-Linkerd)
-- [Chapter 16 - Exploring the Reliability Features of Linkerd](#Reliability)
-- [Chapter 17 - Exploring the Security Features of Linkerd](#Security)
-- [Chapter 18 - Exploring the Observability Features of Linkerd](#Visibility)
+- [Chapter 15 - Installing Linkerd](#chapter-15---installing-linkerd)
+- [Chapter 16 - Exploring the Reliability Features of Linkerd](#chapter-16---exploring-the-reliability-features-of-linkerd)
+- [Chapter 17 - Exploring the Security Features of Linkerd](#chapter-17---exploring-the-security-features-of-linkerd)
+- [Chapter 18 - Exploring the Observability Features of Linkerd](#chapter-18---exploring-the-observability-features-of-linkerd)
 
 ## Chapter 15 - Installing Linkerd
 
