@@ -7,7 +7,7 @@ Contents
 - [Chapter 17 - Exploring the Security Features of Linkerd](#Security)
 - [Chapter 18 - Exploring the Observability Features of Linkerd](#Visibility)
 
-## Installing Linkerd
+## Chapter 15 - Installing Linkerd
 
 Copy and paste command as you practice.
 
@@ -272,7 +272,7 @@ curl -s -H "Host: booksapp.linkerd.local" http://$INGRESS_HOST | grep -i /title
 
 ### End of Linkerd install and demo apps
 
-## Reliability
+## Chapter 16 - Exploring the Reliability Features of Linkerd
 
 ### Change to scripts directory
 ```
@@ -453,7 +453,7 @@ linkerd tap deployment/web --namespace emojivoto \
 
 ### End of Linkerd Reliability commands
 
-## Security
+## Chapter 17 - Exploring the Security Features of Linkerd
 
 ### Change directory to scripts
 ```
@@ -692,7 +692,7 @@ curl -Ls -HHost:booksapp.linkerd.local \
 
 ### End of Linkerd Security commands
 
-## Visibility
+## Chapter 18 - Exploring the Observability Features of Linkerd
 
 ### Change directory 
 ```
