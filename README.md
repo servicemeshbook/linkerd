@@ -9,6 +9,10 @@
 
 This branch has scripts that works with stable-2.6.0 release of Linkerd.
 
+### Disclaimer
+
+Some of the command outputs such as pod, service, and deployment names, IP addresses etc. might not always match to what's in the book. But the expected behavior will be the same. 
+
 ## Linkerd Chapters Walk-Through
 
 ### Chapter 15 - Installing Linkerd" 
